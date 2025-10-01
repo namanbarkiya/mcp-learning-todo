@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi_mcp import FastApiMCP
 from fastapi.middleware.cors import CORSMiddleware
 
 from .api.todos import router as todos_router
@@ -23,6 +24,18 @@ def create_app() -> FastAPI:
     @app.get("/")
     def root():
         return {"status": "ok", "service": "csv-todo"}
+
+    # Mount MCP server with metadata and include only endpoints tagged as "todos"
+    mcp = FastApiMCP(
+        app,
+        name="CSV Todo MCP",
+        description=(
+            "MCP tools exposing CSV-backed todo CRUD endpoints. "
+            "Includes list, get, create, update, and delete operations."
+        ),
+        include_tags=["todos"],
+    )
+    mcp.mount()
 
     return app
 

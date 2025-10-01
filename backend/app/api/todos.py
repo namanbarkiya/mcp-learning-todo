@@ -12,12 +12,12 @@ from ..services.csv_service import (
 router = APIRouter()
 
 
-@router.get("/", response_model=List[Todo])
+@router.get("/", response_model=List[Todo], operation_id="list_todos")
 def list_todos() -> List[Todo]:
     return load_todos()
 
 
-@router.get("/{todo_id}", response_model=Todo)
+@router.get("/{todo_id}", response_model=Todo, operation_id="get_todo")
 def get_todo(todo_id: int) -> Todo:
     todos = load_todos()
     for item in todos:
@@ -26,7 +26,7 @@ def get_todo(todo_id: int) -> Todo:
     raise HTTPException(status_code=404, detail="Todo not found")
 
 
-@router.post("/", response_model=Todo, status_code=201)
+@router.post("/", response_model=Todo, status_code=201, operation_id="create_todo")
 def create_todo(payload: TodoCreate) -> Todo:
     todos = load_todos()
     new_todo = Todo(id=generate_next_id(todos), title=payload.title, completed=False)
@@ -35,7 +35,7 @@ def create_todo(payload: TodoCreate) -> Todo:
     return new_todo
 
 
-@router.put("/{todo_id}", response_model=Todo)
+@router.put("/{todo_id}", response_model=Todo, operation_id="update_todo")
 def update_todo(todo_id: int, payload: TodoUpdate) -> Todo:
     todos = load_todos()
     for idx, item in enumerate(todos):
@@ -51,7 +51,7 @@ def update_todo(todo_id: int, payload: TodoUpdate) -> Todo:
     raise HTTPException(status_code=404, detail="Todo not found")
 
 
-@router.delete("/{todo_id}", status_code=204)
+@router.delete("/{todo_id}", status_code=204, operation_id="delete_todo")
 def delete_todo(todo_id: int) -> None:
     todos = load_todos()
     filtered = [t for t in todos if t.id != todo_id]
