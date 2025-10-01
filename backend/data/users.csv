@@ -1,0 +1,4 @@
+id,username,email,password_hash,created_at,last_login,preferences,updated_at
+72a2001d-5474-4fad-bc82-81b8f05a34b6,testuser,test@example.com,$2b$12$x4Xm6t3n2irUfBMoJb/BQerQZLmok1FXGqn2FqnOnA9YHnFTYO7fS,2025-10-01T07:58:34.058820,,{},
+fea0e164-2e65-4a9f-8e0a-a56e03064e34,newuser,new@example.com,$2b$12$TtpmjSE5OGgzj9l0q.fwEO.gUiLHGUJQVMOc1rx.vTmIA2m79R7EO,2025-10-01T07:59:01.232643,2024-01-01T00:00:00Z,{},2025-10-01T09:38:35.781736
+aa218956-68f9-49da-a210-9ab442c163f6,testuser2,test2@example.com,$2b$12$VCfSm.7TJt4FdloM/MXFnOx7WZh7DUt6Phufe2dY5QixdHSRrr7W.,2025-10-01T09:03:44.512593,2024-01-01T00:00:00Z,{},2025-10-01T09:14:30.411565
