@@ -1,44 +1,201 @@
-import Link from "next/link";
+"use client";
 
-export default function Home() {
+import { useEffect, useMemo, useState } from "react";
+
+type Todo = {
+    id: number;
+    title: string;
+    completed: boolean;
+};
+
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8080";
+
+export default function HomePage() {
+    const [todos, setTodos] = useState<Todo[]>([]);
+    const [newTitle, setNewTitle] = useState("");
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [editingId, setEditingId] = useState<number | null>(null);
+    const [editingTitle, setEditingTitle] = useState("");
+
+    async function fetchTodos() {
+        try {
+            const res = await fetch(`${API_BASE}/todos/`);
+            if (!res.ok) throw new Error("Failed to load todos");
+            const data = await res.json();
+            setTodos(data);
+            setError(null);
+        } catch (e: any) {
+            setError(e?.message || "Something went wrong");
+        }
+    }
+
+    useEffect(() => {
+        fetchTodos();
+    }, []);
+
+    async function addTodo() {
+        if (!newTitle.trim()) return;
+        setLoading(true);
+        try {
+            const res = await fetch(`${API_BASE}/todos/`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ title: newTitle.trim() }),
+            });
+            if (res.ok) {
+                setNewTitle("");
+                await fetchTodos();
+                setError(null);
+            } else {
+                setError("Failed to add todo");
+            }
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    async function toggleTodo(id: number, completed: boolean) {
+        setLoading(true);
+        try {
+            await fetch(`${API_BASE}/todos/${id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ completed: !completed }),
+            });
+            await fetchTodos();
+            setError(null);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    async function deleteTodo(id: number) {
+        setLoading(true);
+        try {
+            const res = await fetch(`${API_BASE}/todos/${id}`, {
+                method: "DELETE",
+            });
+            if (!res.ok) throw new Error("Failed to delete");
+            await fetchTodos();
+            setError(null);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    function startEditing(todo: Todo) {
+        setEditingId(todo.id);
+        setEditingTitle(todo.title);
+    }
+
+    async function saveEditing() {
+        if (editingId == null) return;
+        const title = editingTitle.trim();
+        if (!title) return;
+        setLoading(true);
+        try {
+            const res = await fetch(`${API_BASE}/todos/${editingId}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ title }),
+            });
+            if (!res.ok) throw new Error("Failed to update");
+            await fetchTodos();
+            setError(null);
+            setEditingId(null);
+            setEditingTitle("");
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    function cancelEditing() {
+        setEditingId(null);
+        setEditingTitle("");
+    }
+
     return (
-        <main className="min-h-screen flex items-center justify-center">
-            <div className="max-w-md w-full space-y-8">
-                <div className="text-center">
-                    <h1 className="text-4xl font-bold text-gray-900 mb-2">
-                        MCP Todo App
-                    </h1>
-                    <p className="text-gray-600 mb-8">
-                        A todo application with Model Context Protocol
-                        integration
-                    </p>
+        <main style={{ maxWidth: 640, margin: "0 auto" }}>
+            <h1>CSV Todo</h1>
+            {error && (
+                <div
+                    style={{
+                        background: "#ffe5e5",
+                        color: "#941b1b",
+                        padding: 8,
+                        borderRadius: 4,
+                        marginBottom: 12,
+                    }}
+                >
+                    {error}
                 </div>
-
-                <div className="space-y-4">
-                    <Link
-                        href="/auth/login"
-                        className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
-                    >
-                        Login
-                    </Link>
-
-                    <Link
-                        href="/auth/register"
-                        className="w-full flex justify-center py-3 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
-                    >
-                        Register
-                    </Link>
-                </div>
-
-                <div className="text-center">
-                    <Link
-                        href="/dashboard"
-                        className="text-sm text-blue-600 hover:text-blue-500"
-                    >
-                        Go to Dashboard (Demo)
-                    </Link>
-                </div>
+            )}
+            <div style={{ display: "flex", gap: 8 }}>
+                <input
+                    value={newTitle}
+                    onChange={(e) => setNewTitle(e.target.value)}
+                    placeholder="New todo title"
+                    style={{ flex: 1, padding: 8 }}
+                />
+                <button onClick={addTodo} disabled={loading}>
+                    Add
+                </button>
             </div>
+            <ul style={{ listStyle: "none", padding: 0, marginTop: 16 }}>
+                {todos.map((t) => (
+                    <li
+                        key={t.id}
+                        style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 8,
+                            padding: "8px 0",
+                            borderBottom: "1px solid #eee",
+                        }}
+                    >
+                        <input
+                            type="checkbox"
+                            checked={t.completed}
+                            onChange={() => toggleTodo(t.id, t.completed)}
+                        />
+                        {editingId === t.id ? (
+                            <input
+                                autoFocus
+                                value={editingTitle}
+                                onChange={(e) =>
+                                    setEditingTitle(e.target.value)
+                                }
+                                onBlur={saveEditing}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter") saveEditing();
+                                    if (e.key === "Escape") cancelEditing();
+                                }}
+                                style={{ flex: 1, padding: 6 }}
+                            />
+                        ) : (
+                            <span
+                                onDoubleClick={() => startEditing(t)}
+                                style={{
+                                    textDecoration: t.completed
+                                        ? "line-through"
+                                        : "none",
+                                    flex: 1,
+                                    cursor: "text",
+                                }}
+                            >
+                                {t.title}
+                            </span>
+                        )}
+                        <button
+                            onClick={() => deleteTodo(t.id)}
+                            disabled={loading}
+                        >
+                            Delete
+                        </button>
+                    </li>
+                ))}
+            </ul>
         </main>
     );
 }

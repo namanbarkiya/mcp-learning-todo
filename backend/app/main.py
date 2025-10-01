@@ -1,32 +1,32 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api import auth, todos, mcp
-from app.core.config import settings
 
-app = FastAPI(
-    title="MCP Todo App API",
-    description="A todo application with Model Context Protocol integration",
-    version="1.0.0"
-)
+from .api.todos import router as todos_router
 
-# CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.ALLOWED_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
-# Include routers
-app.include_router(auth.router, prefix="/api/auth", tags=["authentication"])
-app.include_router(todos.router, prefix="/api/todos", tags=["todos"])
-app.include_router(mcp.router, prefix="/api/mcp", tags=["mcp"])
+def create_app() -> FastAPI:
+    app = FastAPI(title="CSV Todo API", version="0.1.0")
 
-@app.get("/")
-async def root():
-    return {"message": "MCP Todo App API", "version": "1.0.0"}
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+        ],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
-@app.get("/health")
-async def health_check():
-    return {"status": "healthy"}
+    app.include_router(todos_router, prefix="/todos", tags=["todos"])
+
+    @app.get("/")
+    def root():
+        return {"status": "ok", "service": "csv-todo"}
+
+    return app
+
+
+app = create_app()
+
+

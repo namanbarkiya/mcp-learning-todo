@@ -1,6 +1,3 @@
-id,user_id,title,description,priority,due_date,completed,created_at,updated_at,category
-2,fea0e164-2e65-4a9f-8e0a-a56e03064e34,hey,bb,low,,False,2025-10-01T08:53:06.992429,2025-10-01T09:36:15.517795,ggg
-3,fea0e164-2e65-4a9f-8e0a-a56e03064e34,Write docs,Update README,high,,False,2025-10-01T08:55:06.573223,2025-10-01T08:55:06.573231,docs
-4,aa218956-68f9-49da-a210-9ab442c163f6,Test todo,Test description,medium,,True,2025-10-01T09:03:56.575805,2025-10-01T09:05:47.368241,work
-5,aa218956-68f9-49da-a210-9ab442c163f6,From MCP,,high,,False,2025-10-01T09:10:26.039159,2025-10-01T09:10:26.039164,mcp
-6,fea0e164-2e65-4a9f-8e0a-a56e03064e34,buy milk,,medium,2024-02-29T22:00:00,False,2025-10-01T09:38:23.758041,2025-10-01T09:44:09.884055,shopping
+id,title,completed
+1,gggg,False
+2,hello,True
