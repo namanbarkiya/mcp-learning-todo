@@ -1,4 +1,4 @@
-# Backend - CSV Todo API
+# Backend - MCP Todo API
 
 FastAPI backend with MCP (Model Context Protocol) integration for AI assistant access.
 

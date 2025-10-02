@@ -33,7 +33,7 @@ export default function RootLayout({
                     }}
                 >
                     <div style={{ maxWidth: 640, margin: "0 auto" }}>
-                        <strong>CSV Todo</strong>
+                        <strong>MCP Todo</strong>
                     </div>
                 </header>
                 <div style={{ padding: 20 }}>{children}</div>
