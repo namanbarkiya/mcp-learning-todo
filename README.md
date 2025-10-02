@@ -8,13 +8,62 @@ An end-to-end demo showing an API-first MCP approach: a FastAPI backend exposes 
 -   The frontend (Next.js) stays thin and calls the API, while MCP can automate workflows via the same backend.
 -   Assistants in MCP-compatible clients can invoke the same server-side tools used by the UI.
 
+## Architecture
+
+```text
+                 ┌───────────────────────────────┐
+                 │        Next.js Frontend       │
+                 │  (Tabs: Todos | MCP | Chat)   │
+                 └───────────────┬───────────────┘
+                                 │
+              fetch /app/api/mcp │         fetch /app/api/chat
+                                 │                  │
+                                 ▼                  ▼
+                     ┌────────────────────────────┐   ┌──────────────────────┐
+                     │ MCP API Routes             │   │   Chat API Route     │
+                     │ /api/mcp/tools             │   │ (LLM + tool-calling) │
+                     │ /api/mcp/tool (invoke)     │   └─────────────┬────────┘
+                     │ /api/mcp/resources/prompts │                 │
+                     └──────────────┬─────────────┘                 │ server-side
+                                    │                               ▼
+                                    │                    ┌────────────────────────┐
+                                    │                    │  MCP Client SDK (JS)   │
+                                    │                    │ @modelcontextprotocol  │
+                                    │                    └─────────────┬──────────┘
+                                    │                                  │ HTTP
+                                    ▼                                  │
+                         ┌────────────────────────────┐                ▼
+                         │   MCP Server (FastAPI)     │        ┌───────────────┐
+                         │   Endpoint: POST /mcp      │        │   LLM (Gemini)│
+                         │   Exposes MCP Tools:       │        └───────────────┘
+                         │   - list_todos             │         function calls
+                         │   - get_todo               │
+                         │   - create_todo            │
+                         │   - update_todo            │
+                         │   - delete_todo            │
+                         └─────────┬──────────────────┘
+                                   │
+                        REST       │
+    ┌──────────────────────────────┴───────────────────────────────┐
+    │                         FastAPI REST                         │
+    │   GET/POST /todos/  |  PUT/DELETE /todos/{id}                │
+    └───────────────┬──────────────────────────────────────────────┘
+                    │
+                    ▼
+         ┌──────────────────────┐       writes/reads      ┌───────────┐
+         │  CSV Service (CRUD)  │────────────────────────►│ todos.csv │
+         │ load/save/next id    │◄────────────────────────│           │
+         └──────────────────────┘        data returned    └───────────┘
+
+```
+
 ## Project Structure
 
 ```
 mcp-ai-todo/
+├── .cursor/          # Cursor config for MCP tools
 ├── backend/          # FastAPI REST API + MCP endpoint; CSV storage for todos
 ├── frontend/         # Next.js client (shadcn/ui, Tailwind) with multi-tab UI
-├── mcp-server/       # Optional prompts/resources/tools for MCP demos
 └── README.md         # This file
 ```
 
@@ -32,7 +81,7 @@ uvicorn app.main:app --reload --port 8080
 
 Key endpoints:
 
--   REST: GET/POST `/todos/`, PUT/DELETE `/todos/{id}`
+-   REST: GET/POST `/todos/`, PUT/DELETE `/todos/{id}/`
 -   MCP: POST `/mcp` (Model Context Protocol endpoint)
 
 Data store: `backend/data/todos.csv` via a simple CSV service.
