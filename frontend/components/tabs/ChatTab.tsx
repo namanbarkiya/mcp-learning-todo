@@ -44,7 +44,7 @@ export default function ChatTab() {
             });
             const data = await res.json();
             const reply = data?.reply ?? "(no response)";
-            const toolCalls: ToolCall[] = data?.toolCalls ?? [];
+            const toolCalls: ToolCall[] = data?.toolSteps ?? [];
             setMessages((m) => [
                 ...m,
                 { role: "model", content: reply, tools: toolCalls },
@@ -88,44 +88,66 @@ export default function ChatTab() {
                                 </div>
                                 {m.tools && m.tools.length > 0 && (
                                     <div className="mt-2">
-                                        {m.tools.map((t, i) => (
-                                            <Collapsible key={i}>
-                                                <CollapsibleTrigger className="text-xs underline">
-                                                    Tool call: {t.name}
-                                                </CollapsibleTrigger>
-                                                <CollapsibleContent className="text-xs mt-1 space-y-1">
-                                                    <div>
-                                                        <span className="font-medium">
-                                                            Args:
-                                                        </span>{" "}
-                                                        <pre className="whitespace-pre-wrap">
-                                                            {JSON.stringify(
-                                                                t.args,
-                                                                null,
-                                                                2
-                                                            )}
-                                                        </pre>
+                                        <Collapsible>
+                                            <CollapsibleTrigger className="text-xs font-medium underline text-primary">
+                                                Tool calls ({m.tools.length})
+                                            </CollapsibleTrigger>
+                                            <CollapsibleContent className="mt-2 space-y-2">
+                                                {m.tools.map((t, i) => (
+                                                    <div
+                                                        key={i}
+                                                        className="rounded-md border bg-muted/30 p-2"
+                                                    >
+                                                        <div className="text-xs font-semibold mb-1">
+                                                            {t.name}
+                                                        </div>
+                                                        <div className="text-xs">
+                                                            <div className="font-medium">
+                                                                Args:
+                                                            </div>
+                                                            <pre className="whitespace-pre-wrap rounded bg-background p-2 border mt-1">
+                                                                {JSON.stringify(
+                                                                    t.args,
+                                                                    null,
+                                                                    2
+                                                                )}
+                                                            </pre>
+                                                        </div>
+                                                        <div className="text-xs mt-2">
+                                                            <div className="font-medium">
+                                                                Result:
+                                                            </div>
+                                                            <pre className="whitespace-pre-wrap rounded bg-background p-2 border mt-1">
+                                                                {JSON.stringify(
+                                                                    t.result,
+                                                                    null,
+                                                                    2
+                                                                )}
+                                                            </pre>
+                                                        </div>
                                                     </div>
-                                                    <div>
-                                                        <span className="font-medium">
-                                                            Result:
-                                                        </span>{" "}
-                                                        <pre className="whitespace-pre-wrap">
-                                                            {JSON.stringify(
-                                                                t.result,
-                                                                null,
-                                                                2
-                                                            )}
-                                                        </pre>
-                                                    </div>
-                                                </CollapsibleContent>
-                                            </Collapsible>
-                                        ))}
+                                                ))}
+                                            </CollapsibleContent>
+                                        </Collapsible>
                                     </div>
                                 )}
                             </div>
                         </div>
                     ))}
+                    {loading && (
+                        <div className="mb-2 flex justify-start">
+                            <div className="max-w-[85%] rounded-md border bg-background p-2 text-sm">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <Badge variant="secondary">model</Badge>
+                                </div>
+                                <div className="ml-4 flex items-center gap-1 py-1">
+                                    <span className="inline-block h-1 w-1 rounded-full bg-muted-foreground animate-bounce [animation-delay:-0.3s]"></span>
+                                    <span className="inline-block h-1 w-1 rounded-full bg-muted-foreground animate-bounce [animation-delay:-0.15s]"></span>
+                                    <span className="inline-block h-1 w-1 rounded-full bg-muted-foreground animate-bounce"></span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                     <div ref={endRef} />
                 </CardContent>
             </Card>
