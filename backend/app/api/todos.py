@@ -50,8 +50,8 @@ def update_todo(todo_id: int, payload: TodoUpdate) -> Todo:
             return updated
     raise HTTPException(status_code=404, detail="Todo not found")
 
-
-@router.delete("/{todo_id}", status_code=204, operation_id="delete_todo")
+# include_in_schema=False: this endpoint is not included in the tools list
+@router.delete("/{todo_id}", status_code=204, operation_id="delete_todo",  include_in_schema=False)
 def delete_todo(todo_id: int) -> None:
     todos = load_todos()
     filtered = [t for t in todos if t.id != todo_id]
