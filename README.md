@@ -16,9 +16,9 @@ An end-to-end demo showing an API-first MCP approach: a FastAPI backend exposes 
                  │  (Tabs: Todos | MCP | Chat)   │
                  └───────────────┬───────────────┘
                                  │
-              fetch /app/api/mcp │         fetch /app/api/chat
-                                 │                  │
-                                 ▼                  ▼
+              fetch /app/api/mcp │                      fetch /app/api/chat
+                                 │                                  │
+                                 ▼                                  ▼
                      ┌────────────────────────────┐   ┌──────────────────────┐
                      │ MCP API Routes             │   │   Chat API Route     │
                      │ /api/mcp/tools             │   │ (LLM + tool-calling) │
