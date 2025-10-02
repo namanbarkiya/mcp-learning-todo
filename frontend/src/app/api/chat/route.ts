@@ -50,19 +50,13 @@ function sanitizeSchema(schema: unknown): unknown {
     return s;
 }
 
-function toGeminiTool(tool: ToolDef) {
+function toGeminiFunction(tool: ToolDef) {
     return {
-        functionDeclarations: [
-            {
-                name: tool.name,
-                description: tool.description || undefined,
-                parameters: sanitizeSchema(
-                    (tool.inputSchema as Record<string, unknown>) || {
-                        type: "object",
-                    }
-                ),
-            },
-        ],
+        name: tool.name,
+        description: tool.description || undefined,
+        parameters: sanitizeSchema(
+            (tool.inputSchema as Record<string, unknown>) || { type: "object" }
+        ),
     };
 }
 
@@ -105,8 +99,9 @@ export async function POST(req: Request) {
 
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
-        model: "gemini-2.0-flash",
-        tools: tools.map(toGeminiTool),
+        model: "gemini-2.5-flash",
+        tools: { functionDeclarations: tools.map(toGeminiFunction) },
+        toolConfig: { functionCallingConfig: { mode: "AUTO" } },
     } as unknown);
 
     // Helpers for cross-model compatibility
@@ -179,54 +174,97 @@ export async function POST(req: Request) {
         functionResponse: { name, response },
     });
 
-    // 3) Send chat
-    let result: unknown = await model.generateContent({
-        contents: messages.map((m) => ({
+    // 3) Build running transcript and satisfy tool calls
+    const systemInstruction = {
+        role: "user",
+        parts: [
+            {
+                text: 'You are a helpful assistant for a todo app. When you call tools you may receive machine-readable output (JSON, arrays, objects). Always transform such output into clear, natural-language summaries for the user — do NOT return raw JSON. Rules: 1. Begin with a one-sentence summary of the total number of todos (e.g. "You have 2 todos."). 2. Then list each todo in natural language, including the title and a clear status phrase (e.g. "done", "not done", "overdue"). Example: "‘Buy milk’ is done" or "‘Pay rent’ is not done". 3. Do not show raw JSON. Only include IDs if the user explicitly asked for them; otherwise omit IDs. If you do include IDs, put them in parentheses after the title: e.g. "‘Buy milk’ (ID: 3) — done". 4. After any tool call, briefly summarise what the tool returned and the effect (e.g. "I added todo \'Buy milk\' successfully. There are now 3 todos."). 5. Use friendly, conversational language and full sentences. Example outputs: - If tool returns two completed todos, respond: "You have 2 todos: ‘gggg’ is done and ‘hello’ is done." - If one is incomplete: "You have 2 todos: ‘gggg’ is done and ‘hello’ is not done." Now respond to the user\'s request or tool output following these rules.',
+            },
+        ],
+    };
+    let contents: Array<{ role: string; parts: unknown[] }> = [
+        systemInstruction,
+        ...messages.map((m) => ({
             role: m.role,
             parts: [{ text: m.content }],
         })),
-    } as unknown);
+    ];
+    const toolSteps: Array<{
+        name: string;
+        args: Record<string, unknown>;
+        result: unknown;
+    }> = [];
+    const seenCalls = new Set<string>();
 
-    // 4) Handle function-calls: loop until model stops requesting calls
-    const aggregatedParts: Array<{ role: string; content: string }> = [];
-
-    // Basic loop: if the model requests a function call, invoke our MCP tool endpoint and then
-    // feed the result back as a tool response.
-    for (let i = 0; i < 5; i++) {
+    let result: unknown = await model.generateContent({ contents } as unknown);
+    for (let i = 0; i < 3; i++) {
         const call = getFunctionCall(result);
         if (!call) break;
 
         const { name, args } = call;
+        const key = `${name}:${JSON.stringify(args)}`;
+        if (seenCalls.has(key)) break;
+        seenCalls.add(key);
 
         const toolRes = await fetch(`${baseUrl}/api/mcp/tool`, {
             method: "POST",
             headers: { "content-type": "application/json" },
             body: JSON.stringify({ name, args }),
-            // Use absolute URL when running server-side
             cache: "no-store",
         });
-
         const toolJson = await toolRes.json();
-        aggregatedParts.push({
-            role: "tool",
-            content: JSON.stringify(toolJson),
-        });
+        toolSteps.push({ name, args, result: toolJson });
 
-        // Send tool response back to the model
-        result = await model.generateContent({
-            contents: [
-                ...messages.map((m) => ({
-                    role: m.role,
-                    parts: [{ text: m.content }],
-                })),
-                {
-                    role: "tool",
-                    parts: [buildFunctionResponsePart(name, toolJson)],
-                },
-            ],
-        } as unknown);
+        contents = [
+            ...contents,
+            {
+                role: "tool",
+                parts: [buildFunctionResponsePart(name, toolJson)],
+            },
+        ];
+        result = await model.generateContent({ contents } as unknown);
     }
 
-    const text = getText(result);
-    return NextResponse.json({ reply: text, toolSteps: aggregatedParts });
+    let text = getText(result);
+    // Fallback: if the model produced no text, synthesize a concise user-facing message
+    if (!text && toolSteps.length > 0) {
+        try {
+            const first = toolSteps[toolSteps.length - 1].result as unknown as {
+                content?: Array<{ type?: string; text?: string }>;
+            };
+            const raw = first?.content
+                ?.map((p) => p.text)
+                .filter(Boolean)
+                .join("\n");
+            if (raw) {
+                let summarized = "";
+                try {
+                    const data = JSON.parse(raw as string);
+                    if (Array.isArray(data)) {
+                        summarized = data
+                            .map(
+                                (t) =>
+                                    `${t.id}. ${t.title}${
+                                        t.completed ? " (done)" : ""
+                                    }`
+                            )
+                            .join("\n");
+                    } else if (typeof data === "object" && data) {
+                        summarized = Object.entries(
+                            data as Record<string, unknown>
+                        )
+                            .map(([k, v]) => `${k}: ${String(v)}`)
+                            .join(", ");
+                    }
+                } catch {
+                    // not JSON
+                }
+                text = summarized || (raw as string);
+            }
+        } catch {
+            // ignore
+        }
+    }
+    return NextResponse.json({ reply: text, toolSteps });
 }
