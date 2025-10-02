@@ -1,36 +1,36 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Frontend (Next.js) – MCP AI Todo
 
-## Getting Started
+This is the Next.js client for the MCP AI Todo demo. It consumes the FastAPI REST API and visualizes tool activity from the MCP endpoint.
 
-First, run the development server:
+## Setup
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Optional environment variable:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+-   `NEXT_PUBLIC_API_BASE` – defaults to `http://localhost:8080`.
 
-## Learn More
+## UI Overview
 
-To learn more about Next.js, take a look at the following resources:
+Single-page, multi-tab layout using shadcn/ui and Tailwind:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+-   **Todos**: list, create, update (inline edit), toggle complete, delete.
+-   **MCP Tools**: lists available tools from the MCP server.
+-   **Chat**: chat window with a typing indicator and a grouped “Tool calls (n)” section under each assistant response, showing args and results for each tool call.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Tech
 
-## Deploy on Vercel
+-   Next.js App Router, Tailwind CSS (v3)
+-   shadcn/ui components (`Tabs`, `Card`, `Button`, `Input`, `Textarea`, `Accordion`, `Badge`, `ScrollArea`, `Separator`, `Skeleton`, `Toast`, `Collapsible`, `Checkbox`, `Label`)
+-   MCP client: `frontend/lib/mcpClient.ts`
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Notes
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+-   The frontend is API-first and thin: it calls the REST API for data and reflects tool steps returned by the assistant (via `/api/chat`).
+-   No component boilerplate from scratch—UI uses shadcn primitives.
+-   To switch API targets, set `NEXT_PUBLIC_API_BASE`.
