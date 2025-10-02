@@ -1,11 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 type Todo = {
     id: number;
     title: string;
     completed: boolean;
+};
+
+type McpTool = {
+    name: string;
+    description?: string;
+    inputSchema?: unknown;
 };
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8080";
@@ -17,6 +23,8 @@ export default function HomePage() {
     const [error, setError] = useState<string | null>(null);
     const [editingId, setEditingId] = useState<number | null>(null);
     const [editingTitle, setEditingTitle] = useState("");
+    const [tools, setTools] = useState<McpTool[]>([]);
+    const [toolsError, setToolsError] = useState<string | null>(null);
 
     async function fetchTodos() {
         try {
@@ -25,13 +33,16 @@ export default function HomePage() {
             const data = await res.json();
             setTodos(data);
             setError(null);
-        } catch (e: any) {
-            setError(e?.message || "Something went wrong");
+        } catch (e: unknown) {
+            const message =
+                e instanceof Error ? e.message : "Something went wrong";
+            setError(message);
         }
     }
 
     useEffect(() => {
         fetchTodos();
+        fetchTools();
     }, []);
 
     async function addTodo() {
@@ -115,6 +126,22 @@ export default function HomePage() {
         setEditingTitle("");
     }
 
+    async function fetchTools() {
+        try {
+            const res = await fetch("/api/mcp/tools", { cache: "no-store" });
+            if (!res.ok) throw new Error("Failed to load MCP tools");
+            const data = await res.json();
+            const list = Array.isArray(data) ? data : data?.tools ?? [];
+            setTools(list);
+            setToolsError(null);
+        } catch (e: unknown) {
+            const message =
+                e instanceof Error ? e.message : "Failed to load MCP tools";
+            setToolsError(message);
+            setTools([]);
+        }
+    }
+
     return (
         <main style={{ maxWidth: 640, margin: "0 auto" }}>
             <h1>CSV Todo</h1>
@@ -196,6 +223,51 @@ export default function HomePage() {
                     </li>
                 ))}
             </ul>
+
+            <section style={{ marginTop: 32 }}>
+                <h2>MCP Tools</h2>
+                {toolsError && (
+                    <div
+                        style={{
+                            background: "#fff6e5",
+                            color: "#7a4d00",
+                            padding: 8,
+                            borderRadius: 4,
+                            marginBottom: 12,
+                        }}
+                    >
+                        {toolsError}
+                    </div>
+                )}
+                {tools.length === 0 ? (
+                    <p style={{ color: "#666" }}>No tools found.</p>
+                ) : (
+                    <ul style={{ listStyle: "none", padding: 0 }}>
+                        {tools.map((tool) => (
+                            <li
+                                key={tool.name}
+                                style={{
+                                    border: "1px solid #eee",
+                                    borderRadius: 6,
+                                    padding: 12,
+                                    marginBottom: 8,
+                                }}
+                            >
+                                <div style={{ fontWeight: 600 }}>
+                                    {tool.name}
+                                </div>
+                                {tool.description && (
+                                    <div
+                                        style={{ color: "#555", marginTop: 4 }}
+                                    >
+                                        {tool.description}
+                                    </div>
+                                )}
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </section>
         </main>
     );
 }
